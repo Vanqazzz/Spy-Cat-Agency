@@ -1,16 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"log/slog"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	storage "main.go/Storage"
 	"main.go/internal/handlers"
 )
 
 var (
-	storagePath = os.Getenv("DB_PATH")
+	storagePath = os.Getenv("Docker_DB_Path")
 )
 
 func Db_Middleware(db *storage.Storage) gin.HandlerFunc {
@@ -19,14 +24,31 @@ func Db_Middleware(db *storage.Storage) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func Migrate(DBpath string) {
+
+	m, err := migrate.New("file://./migrations",
+		DBpath)
+	if err != nil {
+		fmt.Println(DBpath, err)
+		panic("fail to apply migrations")
+
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+
+	r := gin.Default()
 
 	db, err := storage.New(storagePath)
 	if err != nil {
 		slog.Error("Error while connecting to DB", err)
 	}
-
-	r := gin.Default()
+	Migrate(storagePath)
 
 	r.Use(Db_Middleware(db))
 

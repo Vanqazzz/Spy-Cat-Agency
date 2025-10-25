@@ -102,7 +102,7 @@ func CreateTarget(s Storage, app *app.Target) error {
 	}
 
 	app.TargetId = id
-	fmt.Println(app.TargetId)
+
 	return nil
 }
 
@@ -120,7 +120,6 @@ func CreateMission(s Storage, mission *app.Missions) error {
 
 func DeleteMission(s Storage, mission *app.Missions) error {
 	const op = "storage.postgres.deletemission"
-	fmt.Println(mission.MissionsId)
 
 	_, err := s.db.Exec("DELETE FROM missions WHERE id = $1 ", mission.MissionsId)
 	if err != nil {
