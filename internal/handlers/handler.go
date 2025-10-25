@@ -11,7 +11,7 @@ import (
 	"main.go/internal/app"
 )
 
-func SingleSpyCat_Handler(c *gin.Context) {
+func Get_SingleSpyCat_Handler(c *gin.Context) {
 	var Name app.Cats
 	if err := json.NewDecoder(c.Request.Body).Decode(&Name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed ", "err message": err.Error()})
@@ -29,7 +29,7 @@ func SingleSpyCat_Handler(c *gin.Context) {
 
 	fmt.Println(Name)
 
-	result, err := storage.ListSingle_SpyCat(*psql, Name.Name)
+	result, err := storage.Get_ListSingle_SpyCat(*psql, Name.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get single cat", "err message": err.Error()})
 	}
@@ -38,32 +38,13 @@ func SingleSpyCat_Handler(c *gin.Context) {
 }
 
 func CreateSpyCats_Handler(c *gin.Context) {
-	var Cat app.Cats
+	var Cat *app.Cats
 
 	if err := json.NewDecoder(c.Request.Body).Decode(&Cat); err != nil {
 		fmt.Errorf(err.Error(), err)
 		return
 	}
 
-	/* resp, err := http.Get("https://api.thecatapi.com/v1/breeds")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Fail to compare breed": err.Error()})
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Failed to read body response": err.Error()})
-	}
-
-	var breed map[string]interface{}
-	if err := json.Unmarshal(body, &breed); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Fail to unmarsal": err.Error()})
-
-	}
-
-	fmt.Println(breed) */
-
 	db, exists := c.Get("db")
 	if !exists {
 		slog.Error("Database doesn't found")
@@ -73,16 +54,16 @@ func CreateSpyCats_Handler(c *gin.Context) {
 		slog.Error("Error to parse database path")
 	}
 
-	name, err := storage.CreateCat(*psql, Cat.Name, Cat.YearsOfExperience, Cat.Breed, Cat.Salary)
+	name, err := storage.CreateCat(*psql, Cat)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create cat", "err message": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Agent was successfully created!": name})
+	c.JSON(http.StatusCreated, gin.H{"Agent was successfully created!": name})
 }
 
-func ListAllCats_Handler(c *gin.Context) {
+func Get_ListAllCats_Handler(c *gin.Context) {
 
 	db, exists := c.Get("db")
 	if !exists {
@@ -94,13 +75,11 @@ func ListAllCats_Handler(c *gin.Context) {
 		slog.Error("Error to parse database path")
 	}
 
-	name, err := storage.AllSpyCats(*psql)
+	name, err := storage.Show_AllSpyCats(*psql)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get all cats", "err message": err.Error()})
 		return
 	}
-
-	fmt.Println(name)
 
 	c.JSON(http.StatusOK, gin.H{"data": name})
 }
@@ -128,7 +107,7 @@ func RemoveCat_Handler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to remove cat", "err message": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Cat was succesfully removed with name:": Cat.Name})
+	c.JSON(http.StatusNoContent, gin.H{"Cat was succesfully removed with name:": Cat.Name})
 }
 
 func UpdateCat_Handler(c *gin.Context) {
@@ -155,4 +134,184 @@ func UpdateCat_Handler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"Salary was updated in": Cat.Name})
+}
+
+func CreateMission_Handler(c *gin.Context) {
+
+	var Missions *app.Missions
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&Missions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON", "err message": err.Error()})
+		return
+	}
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	err := storage.CreateMission(*psql, Missions)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create mission", "err message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": Missions})
+}
+
+func CreateTarget_Handler(c *gin.Context) {
+	var Target *app.Target
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&Target); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON", "err message": err.Error()})
+		return
+	}
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	err := storage.CreateTarget(*psql, Target)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create target", "err message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"Target was created": Target.Target_name})
+
+}
+
+func DeleteMission_Handler(c *gin.Context) {
+	var Missions *app.Missions
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&Missions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON", "err message": err.Error()})
+		return
+	}
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	err := storage.DeleteMission(*psql, Missions)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete mission", "err message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, gin.H{"Mission was deleted!": Missions})
+
+}
+
+func UpdateMission_Handler(c *gin.Context) {
+
+	var Missions app.Missions
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&Missions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse JSON", "err message": err.Error()})
+		return
+	}
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	err := storage.UpdateMission(*psql, &Missions)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed update salary", "err message": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"Complete state was updated in": Missions.MissionsId})
+}
+
+func Get_AllMissions_Handler(c *gin.Context) {
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	missions, err := storage.Show_AllMissions(*psql)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed get all missions", "err message": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"All missions:": missions})
+}
+
+func Get_SingleMission_Handler(c *gin.Context) {
+	var Mission app.Missions
+	if err := json.NewDecoder(c.Request.Body).Decode(&Mission); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed ", "err message": err.Error()})
+		return
+	}
+
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	result, err := storage.Get_SingleMission(*psql, Mission)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get single cat", "err message": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"Single Agent:": result})
+}
+
+func AssignCat(c *gin.Context) {
+
+	var Mission app.Missions
+	if err := json.NewDecoder(c.Request.Body).Decode(&Mission); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed ", "err message": err.Error()})
+		return
+	}
+	db, exists := c.Get("db")
+	if !exists {
+		slog.Error("Database doesn't found")
+	}
+	psql, ok := db.(*storage.Storage)
+	if !ok {
+		slog.Error("Error to parse database path")
+	}
+
+	err := storage.AssignCat(*psql, Mission)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get single cat", "err message": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"": Mission.Cat_id})
+
 }
